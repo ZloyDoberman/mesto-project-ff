@@ -10,14 +10,27 @@
 
 const cardsTemplate = document.querySelector('#card-template').content;
 const cardsList = document.querySelector('.places__list');
-  for (let i = 0; i < initialCards.length; i++) {
-    const cloneCards = cardsTemplate.querySelector('.places__item').cloneNode(true);
-    const deleteButton = cloneCards.querySelector('.card__delete-button');
-    const listItem = deleteButton.closest('.places__item');
-    cloneCards.querySelector('.card__image').src = initialCards[i].link;
-    cloneCards.querySelector('.card__title').textContent = initialCards[i].name;
-    cardsList.append(cloneCards);
-    deleteButton.addEventListener('click', function () {
-      listItem.remove();
-    });
-    };
+
+    function createCard(item, {deleteCard}) {
+      const cloneCards = cardsTemplate.querySelector('.places__item').cloneNode(true);
+      const cloneCardsImg = cloneCards.querySelector('.card__image');
+      const cloneCardsName = cloneCards.querySelector('.card__title');
+      const deleteButton = cloneCards.querySelector('.card__delete-button');
+      cloneCardsImg.src = item.link;
+      cloneCardsImg.alt = item.name;
+      cloneCardsName.textContent = item.name;
+      deleteButton.addEventListener('click', deleteCard);
+      return cloneCards;
+    }
+    function renderCard(card, method = 'prepend') {
+        card.forEach((item)=>{
+        const cardElement = createCard(item, {deleteCard});
+        cardsList[ method ](cardElement);
+      });}
+
+    renderCard(initialCards);
+
+      function deleteCard(evt) {
+        const listItem = evt.target.closest('.places__item');
+        listItem.remove();
+      }
