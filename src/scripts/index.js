@@ -8,7 +8,7 @@
 
 // @todo: Вывести карточки на страницу
 import { initialCards } from "./cards.js";
-import { renderCard } from "./components/card.js";
+import { createCard, deleteCard, likeCard } from "./components/card.js";
 import { openPopup, closePopup } from "./components/modal.js";
 
 const cardsTemplate = document.querySelector("#card-template").content;
@@ -23,70 +23,65 @@ const popupCaption = document.querySelector(".popup__caption");
 const nameProfile = document.querySelector(".profile__title");
 const profileDescription = document.querySelector(".profile__description");
 const popup = document.querySelectorAll(".popup");
+const formNewPlace = document.forms["new-place"];
+const nameCardNewPlace = formNewPlace.elements["place-name"];
+const linkImgNewPlace = formNewPlace.elements["link"];
+const formEditProfile = document.forms["edit-profile"];
+const nameEditProfile = formEditProfile.elements["name"];
+const descriptionEditProfile = formEditProfile.elements["description"];
+const closePopupButton = document.querySelectorAll(".popup__close");
 
-export { cardsTemplate, cardsList, popupImg, popupImage, popupCaption };
-
-popup.forEach((item) => item.classList.add("popup_is-animated"));
-
+popup.forEach((item) => item.classList.add("popup_is-animated"));// Добавление всем ".popup" класс ".popup_is-animated"
+closePopupButton.forEach((item) => item.addEventListener("click",(evt) => closePopup(evt.target.closest(".popup"))));
 renderCard(initialCards);
+
+function renderCard(card, method = 'prepend') {
+  card.forEach((item)=>{
+  const cardElement = createCard(item, {deleteCard, likeCard, openPopupImg});
+  cardsList[ method ](cardElement);
+});}
+
+function openPopupImg(evt) {
+  popupImage.src = evt.target.src;
+  popupImage.alt = evt.target.alt;
+  popupCaption.textContent = evt.target.alt;
+  openPopup(popupImg);
+}
 
 function openFormAddCard() {
   openPopup(newCard);
-  const form = document.forms["new-place"];
-  const nameCard = form.querySelector(
-    ".popup__input.popup__input_type_card-name"
-  );
-  nameCard.focus();
-  form.addEventListener("submit", saveCard);
+  nameCardNewPlace.focus();
 }
 
 function saveCard(evt) {
   evt.preventDefault();
-
-  const nameCard = evt.target.querySelector(
-    ".popup__input.popup__input_type_card-name"
-  ).value;
-  const linkImg = evt.target.querySelector(
-    ".popup__input.popup__input_type_url"
-  ).value;
-
-  if (nameCard && linkImg) {
-    //проверка на заполнение полей
-    initialCards.push({
-      name: nameCard,
-      link: linkImg,
-    });
-    evt.target.reset();
-    closePopup(newCard);
-    renderCard([initialCards[initialCards.length - 1]]); // рендер только последней карточки
+  if (nameCardNewPlace.value && linkImgNewPlace.value) {
+  const newCardAdd = [{name:nameCardNewPlace.value, link:linkImgNewPlace.value}];
+  renderCard(newCardAdd);
+  evt.target.reset();
+  closePopup(newCard);
   }
 }
 
 function openFormProfile() {
-  const form = document.forms["edit-profile"];
-  form.querySelector(".popup__input_type_name").value = nameProfile.textContent;
-  form.querySelector(".popup__input_type_description").value =
-    profileDescription.textContent;
+  nameEditProfile.value = nameProfile.textContent;
+  descriptionEditProfile.value = profileDescription.textContent;
   openPopup(profileEdit);
-  form.querySelector(".popup__input_type_name").focus();
-  form.addEventListener("submit", saveInfo);
+  nameEditProfile.focus();
 }
 
 function saveInfo(evt) {
   evt.preventDefault();
-
-  const name = evt.target.querySelector(".popup__input_type_name").value;
-  const description = evt.target.querySelector(
-    ".popup__input_type_description"
-  ).value;
-
-  if (name && description) {
-    nameProfile.textContent = name;
-    profileDescription.textContent = description;
-    evt.target.reset();
+  if (nameEditProfile.value && descriptionEditProfile.value) {
+    nameProfile.textContent = nameEditProfile.value.trim();
+    profileDescription.textContent = descriptionEditProfile.value.trim();
     closePopup(profileEdit);
   }
 }
 
 addButton.addEventListener("click", openFormAddCard);
 profileEditButton.addEventListener("click", openFormProfile);
+formNewPlace.addEventListener("submit", saveCard);
+formEditProfile.addEventListener("submit", saveInfo);
+
+export { cardsTemplate, cardsList, popupImg, popupImage, popupCaption, openPopupImg };
