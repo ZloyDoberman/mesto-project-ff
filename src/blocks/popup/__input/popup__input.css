@@ -14,6 +14,25 @@
   margin-bottom: 0;
 }
 
+.popup__input_type_error {
+  border-bottom: 1px solid #FF0000;
+}
+
+.form__input-error {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.52px;
+  color: #FF0000;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0.3s, opacity 0.3s;
+}
+
+.popup__error_visible {
+  visibility: visible;
+  opacity: 1;
+}
+
 @media screen and (max-width: 568px) {
   .popup__title {
     font-size: 12px;
