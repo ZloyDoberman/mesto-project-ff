@@ -1,8 +1,7 @@
-import { cardsTemplate, myID, popupDeleteCard, formDeleteCard } from '../index.js';
-import { deleteMyCard, addNewLike, deleteLike } from '../api.js';
-import { openPopup, closePopup } from './modal.js';
+import { cardsTemplate, myID } from '../index.js';
+import { addNewLike, deleteLike } from '../api.js';
 
-export function createCard(item, {openDeleteCard, likeCard, openPopupImg}) {
+export function createCard(item, popupDeleteCard, formDeleteCard, {openDeleteCard, likeCard, openPopupImg, openPopup, closePopup}) {
       const cloneCards = cardsTemplate.querySelector('.places__item').cloneNode(true);
       const cloneCardsImg = cloneCards.querySelector('.card__image');
       const cloneCardsName = cloneCards.querySelector('.card__title');
@@ -20,7 +19,8 @@ export function createCard(item, {openDeleteCard, likeCard, openPopupImg}) {
         deleteButton.style.display = 'none';
       } else {
         deleteButton.addEventListener('click', () => {
-          openDeleteCard(cloneCards)
+          openPopup(popupDeleteCard);
+          openDeleteCard(cloneCards, formDeleteCard, popupDeleteCard, { closePopup })
       });
       }
 
@@ -29,49 +29,27 @@ export function createCard(item, {openDeleteCard, likeCard, openPopupImg}) {
       }
 
       cloneCardsImg.addEventListener('click', openPopupImg);
-      like.addEventListener('click', likeCard);
+      like.addEventListener('click', () => {
+        likeCard(cloneCards.dataset.id, like, likeCount);
+      });
 
       return cloneCards;
     }
 
-export function openDeleteCard(cardElement) {
-        openPopup(popupDeleteCard);
-        formDeleteCard.onsubmit = (evt) => {
-          evt.preventDefault();
-          const cardId = cardElement.dataset.id;
-          deleteMyCard(cardId)
-          .then(() => {
-            cardElement.remove();
-            closePopup(popupDeleteCard);
-          })
-          .catch((err) => {
-            console.log(err);
-          })
-        }
-      }
-
-export function likeCard(evt) {
-        const listItem = evt.target.closest('.places__item');
-        const cardId = listItem.dataset.id;
-        const likeCount = listItem.querySelector('.card__like-count'); 
-        if(!evt.target.classList.contains('card__like-button_is-active')) {
+export function likeCard(cardId, like, likeCount) {
+        if(!like.classList.contains('card__like-button_is-active')) {
           addNewLike(cardId)
             .then((likeCard) => {
               likeCount.textContent = likeCard.likes.length;
-              evt.target.classList.add('card__like-button_is-active');
+              like.classList.add('card__like-button_is-active');
             })
-            .catch((err) => {
-              console.log(`Ошибка: ${err}`);
-            });
-          
+            .catch((err) => console.log(`Ошибка: ${err}`));
         } else {
           deleteLike(cardId)
             .then((likeCard) => {
               likeCount.textContent = likeCard.likes.length;
-              evt.target.classList.remove('card__like-button_is-active');
+              like.classList.remove('card__like-button_is-active');
             })
-            .catch((err) => {
-              console.log(`Ошибка: ${err}`);
-            });
+            .catch((err) => console.log(`Ошибка: ${err}`));
         }
       }

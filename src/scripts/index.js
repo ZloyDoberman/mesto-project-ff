@@ -7,10 +7,10 @@
 // @todo: Функция удаления карточки
 
 // @todo: Вывести карточки на страницу
-import { createCard, openDeleteCard, likeCard } from "./components/card.js";
+import { createCard, likeCard } from "./components/card.js";
 import { openPopup, closePopup } from "./components/modal.js";
 import { enableValidation, clearValidation, showErrors } from "./components/validation.js";
-import { getUserInfo, getInitialCards, updateProfile, addNewCard, setNewAvatar, isValidImageUrl } from "./api.js";
+import { getUserInfo, getInitialCards, updateProfile, addNewCard, setNewAvatar, isValidImageUrl, deleteMyCard } from "./api.js";
 
 const cardsTemplate = document.querySelector("#card-template").content;
 const cardsList = document.querySelector(".places__list");
@@ -21,21 +21,21 @@ const profileEditButton = document.querySelector(".profile__edit-button");
 const profileEdit = document.querySelector(".popup_type_edit");
 const popupImg = document.querySelector(".popup_type_image");
 const popupImage = document.querySelector(".popup__image");
-const popupCaption = document.querySelector(".popup__caption");
+const popupImgCaption = document.querySelector(".popup__caption");
 const nameProfile = document.querySelector(".profile__title");
 const profileDescription = document.querySelector(".profile__description");
 const avatar = document.querySelector(".profile__image");
-const popup = document.querySelectorAll(".popup");
-const popupDeleteCard = document.querySelector(".popup_type_delete-card");
+const popupList = document.querySelectorAll(".popup");
 const formNewPlace = document.forms["new-place"];
 const nameCardNewPlace = formNewPlace.elements["place-name"];
 const linkImgNewPlace = formNewPlace.elements["link"];
 const formEditProfile = document.forms["edit-profile"];
 const nameEditProfile = formEditProfile.elements["name"];
 const descriptionEditProfile = formEditProfile.elements["description"];
-const closePopupButton = document.querySelectorAll(".popup__close");
+const closePopupButtonList = document.querySelectorAll(".popup__close");
 const formNewAvatar = document.forms["new-avatar"];
 const linkNewAvatar = formNewAvatar.elements["link"];
+const popupDeleteCard = document.querySelector(".popup_type_delete-card");
 const formDeleteCard = document.forms["delete-card"];
 
 const validationConfig = {
@@ -68,19 +68,19 @@ Promise.all([getUserInfo(), getInitialCards()])
     console.log(`Error: ${err}`);
   });
 
-popup.forEach((item) => item.classList.add("popup_is-animated"));// Добавление всем ".popup" класс ".popup_is-animated"
-closePopupButton.forEach((item) => item.addEventListener("click",(evt) => closePopup(evt.target.closest(".popup"))));
+popupList.forEach((popup) => popup.classList.add("popup_is-animated"));// Добавление всем ".popup" класс ".popup_is-animated"
+closePopupButtonList.forEach((closePopupButton) => closePopupButton.addEventListener("click",(evt) => closePopup(evt.target.closest(".popup"))));
 
 function renderCard(card, method = 'append') {
   card.forEach((item)=>{
-  const cardElement = createCard(item, {openDeleteCard, likeCard, openPopupImg});
+  const cardElement = createCard(item, popupDeleteCard, formDeleteCard, {openDeleteCard, likeCard, openPopupImg, openPopup, closePopup});
   cardsList[ method ](cardElement);
 });}
 
 function openPopupImg(evt) {
   popupImage.src = evt.target.src;
   popupImage.alt = evt.target.alt;
-  popupCaption.textContent = evt.target.alt;
+  popupImgCaption.textContent = evt.target.alt;
   openPopup(popupImg);
 }
 
@@ -112,22 +112,24 @@ function saveCard(evt) {
   isValidImageUrl(linkImgNewPlace.value).then((isValid) => {
     if(isValid) {
       addNewCard(nameCardNewPlace.value, linkImgNewPlace.value)
-      .then((newCard) => {
+      .then((itemNewCard) => {
       renderCard([{
-        name:newCard.name, 
-        link:newCard.link, 
-        likes:newCard.likes,
-        id:newCard._id,
+        name:itemNewCard.name, 
+        link:itemNewCard.link, 
+        likes:itemNewCard.likes,
+        id:itemNewCard._id,
         ownerId:myID
-      }], 'prepend')
+      }], 'prepend');
+      closePopup(newCard);
+      evt.target.reset();
     })
-    .catch((err) => console.log(`Error: ${err}`));
-    evt.target.reset();
-    closePopup(newCard);
+    .catch((err) => console.log(`Ошибка: ${err}`));
     } else {
       showErrors(formNewPlace, linkImgNewPlace, "Это не изображение!", validationConfig);
     }
-  }).finally(() => {
+  })
+  .catch((err) => console.log(`Ошибка: ${err}`))
+  .finally(() => {
     uxButton(formNewPlace, false);
   })
 }
@@ -144,13 +146,16 @@ function openFormProfile() {
 function saveInfo(evt) {
   evt.preventDefault();
   uxButton(formEditProfile, true);
-  nameProfile.textContent = nameEditProfile.value.trim();
-  profileDescription.textContent = descriptionEditProfile.value.trim();
   updateProfile(nameEditProfile.value.trim(), descriptionEditProfile.value.trim())
+    .then((res) => {
+        nameProfile.textContent = res.name;
+        profileDescription.textContent = res.about;
+        closePopup(profileEdit);
+    })
+    .catch((err) => console.log(`Ошибка: ${err}`))
     .finally(() => {
       uxButton(formEditProfile, false);
     });
-  closePopup(profileEdit);
 }
 
 function saveNewAvatar(evt) {
@@ -158,16 +163,34 @@ function saveNewAvatar(evt) {
   uxButton(formNewAvatar, true);
   isValidImageUrl(linkNewAvatar.value).then((isValid) => {
     if(isValid) {
-      avatar.style.backgroundImage = `url('${linkNewAvatar.value.trim()}')`;
-      setNewAvatar(linkNewAvatar.value.trim());
-      closePopup(newAvatar);
+      setNewAvatar(linkNewAvatar.value.trim())
+      .then((res) => {
+        avatar.style.backgroundImage = `url('${res.avatar}')`;
+        closePopup(newAvatar);
+      })
+      .catch((err) => console.log(`Ошибка: ${err}`));
     } else {
       showErrors(formNewAvatar, linkNewAvatar, "Это не изображение!", validationConfig);
     }
-  }).finally(() => {
+  })
+  .catch((err) => console.log(`Ошибка: ${err}`))
+  .finally(() => {
     uxButton(formNewAvatar, false);
   });
 }
+
+function openDeleteCard(cardElement, formDeleteCard, popupDeleteCard, { closePopup }) {
+        formDeleteCard.onsubmit = (evt) => {
+          evt.preventDefault();
+          const cardId = cardElement.dataset.id;
+          deleteMyCard(cardId)
+          .then(() => {
+            cardElement.remove();
+            closePopup(popupDeleteCard);
+          })
+          .catch((err) => console.log(`Ошибка: ${err}`));
+        }
+      }
 
 addButton.addEventListener("click", openFormAddCard);
 profileEditButton.addEventListener("click", openFormProfile);
@@ -178,4 +201,4 @@ formNewAvatar.addEventListener("submit", saveNewAvatar);
 
 enableValidation(validationConfig);
 
-export { cardsTemplate, cardsList, popupImg, popupImage, popupCaption, openPopupImg, myID, popupDeleteCard, formDeleteCard };
+export { cardsTemplate, cardsList, popupImg, popupImage, openPopupImg, myID };
